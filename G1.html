@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第一关 - 爱情迷宫</title>
+<style>
+  body {
+    font-family: 'Arial', sans-serif;
+    text-align: center;
+    background: linear-gradient(to bottom, #e0f7ff, #b3ecff);
+    margin: 0;
+    padding: 20px;
+    overflow-x: hidden;
+  }
+  h1 { color: #0073b3; }
+  canvas {
+    border: 3px solid #0073b3;
+    background: #fff;
+    margin-top: 20px;
+    border-radius: 10px;
+  }
+  #message {
+    font-size: 20px;
+    color: #0073b3;
+    margin-top: 20px;
+    min-height: 28px;
+    transition: opacity 0.5s;
+  }
+  #next {
+    display: none;
+    margin-top: 20px;
+    padding: 12px 25px;
+    font-size: 18px;
+    border: none;
+    border-radius: 10px;
+    background: #0073b3;
+    color: white;
+    cursor: pointer;
+    transition: 0.3s;
+  }
+  #next:hover { background: #00aaff; }
+</style>
+</head>
+<body>
+  <h1>第一关 - 爱情迷宫</h1>
+  <p>小朱要走过迷宫去找到小杨 ❤️</p>
+  <canvas id="mazeCanvas" width="400" height="400"></canvas>
+  <div id="message"></div>
+  <button id="next" onclick="nextLevel()">进入第二关</button>
+
+<script>
+const canvas = document.getElementById("mazeCanvas");
+const ctx = canvas.getContext("2d");
+const cellSize = 40;
+const rows = 10, cols = 10;
+
+const maze = [
+  [0,1,0,0,0,0,1,0,0,0],
+  [0,1,0,1,1,0,1,0,1,0],
+  [0,0,0,1,0,0,0,0,1,0],
+  [1,1,0,1,0,1,1,0,1,0],
+  [0,0,0,0,0,1,0,0,0,0],
+  [0,1,1,1,0,1,0,1,1,0],
+  [0,0,0,1,0,0,0,1,0,0],
+  [1,1,0,1,1,1,0,1,0,1],
+  [0,0,0,0,0,0,0,0,0,0],
+  [0,1,1,1,1,1,1,1,1,0]
+];
+
+let player = {x:0, y:0};
+const goal = {x:9, y:9};
+let pathTrail = []; // 玩家移动步迹
+
+function drawMaze() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  
+  // 绘制迷宫墙
+  for (let y=0; y<rows; y++) {
+    for (let x=0; x<cols; x++) {
+      if (maze[y][x] === 1) {
+        ctx.fillStyle = "#0073b3";
+        ctx.fillRect(x*cellSize, y*cellSize, cellSize, cellSize);
+      }
+    }
+  }
+
+  // 绘制玩家步迹
+  pathTrail.forEach(pos => {
+    ctx.fillStyle = "rgba(0, 115, 179, 0.3)";
+    ctx.beginPath();
+    ctx.arc(pos.x*cellSize+20, pos.y*cellSize+20, 10, 0, Math.PI*2);
+    ctx.fill();
+  });
+
+  // 绘制目标点
+  ctx.fillStyle = "#ff4d4d";
+  ctx.beginPath();
+  ctx.arc(goal.x*cellSize+20, goal.y*cellSize+20, 15, 0, Math.PI*2);
+  ctx.fill();
+
+  // 绘制玩家
+  ctx.fillStyle = "#0073b3";
+  ctx.beginPath();
+  ctx.arc(player.x*cellSize+20, player.y*cellSize+20, 15, 0, Math.PI*2);
+  ctx.fill();
+}
+
+function movePlayer(dx, dy) {
+  let newX = player.x + dx;
+  let newY = player.y + dy;
+  if(newX>=0 && newY>=0 && newX<cols && newY<rows && maze[newY][newX] === 0){
+    player.x = newX;
+    player.y = newY;
+    pathTrail.push({x: player.x, y: player.y}); // 记录步迹
+    drawMaze();
+    checkWin();
+  }
+}
+
+function checkWin(){
+  if(player.x === goal.x && player.y === goal.y){
+    const messageEl = document.getElementById("message");
+    messageEl.textContent = "恭喜你！小朱找到小杨啦 ❤️";
+    messageEl.style.opacity = 0;
+    setTimeout(() => messageEl.style.opacity = 1, 100);
+    animateHeart();
+    document.getElementById("next").style.display = "inline-block";
+    window.removeEventListener("keydown", keyHandler);
+  }
+}
+
+// 心形闪烁动画
+function animateHeart() {
+  let heartSize = 10;
+  const interval = setInterval(() => {
+    ctx.fillStyle = "rgba(255, 77, 77, 0.6)";
+    ctx.beginPath();
+    ctx.moveTo(goal.x*cellSize+20, goal.y*cellSize+20-heartSize/2);
+    ctx.arc(goal.x*cellSize+20, goal.y*cellSize+20, heartSize, 0, Math.PI*2);
+    ctx.fill();
+    heartSize += 2;
+    if(heartSize>40) clearInterval(interval);
+  }, 100);
+}
+
+function keyHandler(e){
+  switch(e.key){
+    case "ArrowUp": movePlayer(0,-1); break;
+    case "ArrowDown": movePlayer(0,1); break;
+    case "ArrowLeft": movePlayer(-1,0); break;
+    case "ArrowRight": movePlayer(1,0); break;
+  }
+}
+
+function nextLevel(){
+  alert("进入第二关啦！");
+  window.location.href = "G2.html";
+}
+
+window.addEventListener("keydown", keyHandler);
+drawMaze();
+</script>
+</body>
+</html>

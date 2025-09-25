@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第三关 & 第四关 - 爱情小游戏</title>
+<style>
+body {
+  margin: 0;
+  font-family: 'Arial', sans-serif;
+  text-align: center;
+  background: linear-gradient(to bottom, #87CEFA, #1E90FF);
+  color: #fff;
+}
+/* 游戏规则提示 */
+#rulesOverlay {
+  position: fixed; top:0; left:0; width:100%; height:100%;
+  background: rgba(0,0,0,0.7);
+  color:#fff;
+  display:flex; flex-direction:column;
+  justify-content:center; align-items:center; z-index:999;
+}
+#rulesOverlay button {
+  margin-top:20px; padding:10px 20px;
+  font-size:18px; border:none; border-radius:8px;
+  cursor:pointer; background:#ff69b4; color:#fff;
+}
+/* 第三关样式 */
+#score { font-size: 18px; margin: 8px 0 2px 0; font-weight: bold; }
+#progressContainer { width: 90%; height: 20px; background: rgba(255,255,255,0.3); border-radius: 10px; overflow: hidden; margin-bottom: 8px; }
+#progressBar { width: 0%; height: 100%; background: #ffcc00; transition: width 0.2s ease; }
+#gameCanvas { border: 2px solid #0073b3; border-radius: 8px; background: rgba(255,255,255,0.8); display: block; margin: 0 auto; touch-action: none; }
+#restartBtn { display: none; margin: 12px auto; padding: 10px 25px; font-size: 16px; background: #0073b3; color: #fff; border: none; border-radius: 5px; cursor: pointer; }
+#restartBtn:active { background: #005a8c; }
+/* 第三关结束按钮 */
+#continueBtn {
+  display:none; margin:12px auto; padding:10px 25px; font-size:16px;
+  background:#ff69b4; color:#fff; border:none; border-radius:5px; cursor:pointer;
+}
+/* 第四关猜拳样式 */
+#fourthLevel {
+  display: none; padding: 20px;
+  background: rgba(255, 255, 255, 0.1); border-radius: 12px;
+  max-width: 400px; margin: 30px auto; text-align: center;
+  backdrop-filter: blur(5px); color: #fff; font-weight: bold;
+}
+#fourthLevel h2 { margin-bottom: 15px; font-size: 24px; text-shadow: 1px 1px 4px rgba(0,0,0,0.5); }
+#winCount { font-size: 20px; margin-bottom: 15px; }
+#choices { display: flex; justify-content: space-around; margin-bottom: 15px; }
+.btn { flex:1; margin:0 5px; padding:12px 0; font-size:18px; font-weight:bold; border-radius:8px;
+  border:none; cursor:pointer; background: linear-gradient(to bottom,#ff6fbf,#ff3385); color:#fff;
+  transition: transform 0.1s, box-shadow 0.2s; box-shadow:0 4px 6px rgba(0,0,0,0.3);}
+.btn:active { transform:scale(0.95); box-shadow:0 2px 4px rgba(0,0,0,0.3); background:linear-gradient(to bottom,#ff3385,#ff1a66);}
+#result { font-size:18px; min-height:24px; margin-top:10px; }
+#finalLetter { display:none; margin:50px auto; width:80%; max-width:400px; background: rgba(255,255,255,0.9);
+  color:#000; padding:30px; border-radius:15px; box-shadow:0 0 15px rgba(0,0,0,0.5);
+  text-align:left; font-size:18px; line-height:1.6;}
+#finalLetter p { margin:10px 0; }
+#showLetterBtn { display:none; margin-top:20px; padding:10px 20px; font-size:18px; border:none;
+  border-radius:8px; cursor:pointer; background:#ff69b4; color:#fff; }
+/* 系统出拳动画 */
+#systemChoiceAnim {
+  position: fixed; top:50%; left:50%; transform: translate(-50%,-50%) scale(0);
+  font-size: 60px; pointer-events:none; z-index:999; transition: transform 0.5s;
+}
+</style>
+</head>
+<body>
+
+<!-- 游戏规则提示 -->
+<div id="rulesOverlay">
+  <h2>第三关游戏规则</h2>
+  <p>控制粉色方块左右躲避下落红色陷阱方块</p>
+  <p>躲过20个陷阱即可完成第三关</p>
+  <button id="startGameBtn">开始游戏</button>
+</div>
+
+<!-- 第三关 -->
+<div id="score">分数: 0 / 20</div>
+<div id="progressContainer"><div id="progressBar"></div></div>
+<canvas id="gameCanvas" width="350" height="600"></canvas>
+<button id="restartBtn">重新开始</button>
+<button id="continueBtn">继续第四关</button>
+
+<!-- 第四关猜拳 -->
+<div id="fourthLevel">
+  <h2>第四关 - 猜拳游戏</h2>
+  <p id="winCount">胜利次数: 0 / 3</p>
+  <div id="choices">
+    <button class="btn" data-choice="石头">✊ 石头</button>
+    <button class="btn" data-choice="剪刀">✌️ 剪刀</button>
+    <button class="btn" data-choice="布">🖐 布</button>
+  </div>
+  <p id="result"></p>
+</div>
+
+<!-- 系统出拳动画 -->
+<div id="systemChoiceAnim"></div>
+
+<!-- 完成按钮和信件 -->
+<button id="showLetterBtn">谢谢你完成所有关卡，这里有一封信</button>
+<div id="finalLetter">
+  <p>亲爱的，</p>
+  <p>谢谢你一直的照顾和陪伴。</p>
+  <p>有你的日子，我感到很幸福，愿你每天都开心幸福。</p>
+  <p>—— 永远关心你的我</p>
+</div>
+
+<script>
+// ------------------- 第三关 -------------------
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const player = { x:160, y:550, width:40, height:40, color:'#ff69b4', speed:7 };
+const traps = [];
+let score=0, gameOver=false;
+const target=20;
+
+function spawnTrap(){ const size=30; traps.push({ x:Math.random()*(canvas.width-size), y:-size, width:size, height:size, color:'#ff4444', speed:2+Math.random()*3 }); }
+function drawPlayer(){ ctx.fillStyle=player.color; ctx.fillRect(player.x,player.y,player.width,player.height); ctx.strokeStyle='#fff'; ctx.strokeRect(player.x,player.y,player.width,player.height); }
+function drawTraps(){ traps.forEach(trap=>{ ctx.fillStyle=trap.color; ctx.beginPath(); ctx.arc(trap.x+trap.width/2, trap.y+trap.height/2, trap.width/2,0,Math.PI*2); ctx.fill(); }); }
+function updateTraps(){
+  traps.forEach((trap,index)=>{
+    trap.y+=trap.speed;
+    if(trap.x<player.x+player.width && trap.x+trap.width>player.x &&
+       trap.y<player.y+player.height && trap.y+trap.height>player.y) gameOver=true;
+    if(trap.y>canvas.height){
+      traps.splice(index,1);
+      score++;
+      document.getElementById('score').innerText=`分数: ${score} / ${target}`;
+      document.getElementById('progressBar').style.width=`${(score/target)*100}%`;
+      if(score>=target){ gameOver=true; setTimeout(()=>{ document.getElementById('continueBtn').style.display='block'; },100); }
+    }
+  });
+}
+function draw(){ ctx.clearRect(0,0,canvas.width,canvas.height); drawPlayer(); drawTraps(); }
+function gameLoop(){ if(!gameOver){ updateTraps(); draw(); requestAnimationFrame(gameLoop); } else{ document.getElementById('restartBtn').style.display='block'; if(score<target) setTimeout(()=>alert('游戏失败！你的分数:'+score),50);} }
+let keys={};
+document.addEventListener('keydown',e=>keys[e.key]=true);
+document.addEventListener('keyup',e=>keys[e.key]=false);
+function movePlayer(){ if(keys['ArrowLeft']&&player.x>0)player.x-=player.speed; if(keys['ArrowRight']&&player.x+player.width<canvas.width)player.x+=player.speed; requestAnimationFrame(movePlayer); }
+movePlayer();
+setInterval(()=>{if(!gameOver) spawnTrap();},900);
+document.getElementById('restartBtn').addEventListener('click',()=>{
+  traps.length=0; score=0; gameOver=false; player.x=160;
+  document.getElementById('score').innerText=`分数: ${score} / ${target}`;
+  document.getElementById('progressBar').style.width='0%';
+  document.getElementById('restartBtn').style.display='none';
+  gameLoop();
+});
+document.getElementById('startGameBtn').addEventListener('click',()=>{ document.getElementById('rulesOverlay').style.display='none'; gameLoop(); });
+
+// 继续第四关按钮
+document.getElementById('continueBtn').addEventListener('click',()=>{
+  document.getElementById('score').style.display='none';
+  document.getElementById('progressContainer').style.display='none';
+  canvas.style.display='none';
+  document.getElementById('continueBtn').style.display='none';
+  fourthLevel.style.display='block';
+});
+
+// ------------------- 第四关 -------------------
+const fourthLevel = document.getElementById('fourthLevel');
+const winCountDisplay = document.getElementById('winCount');
+const resultDisplay = document.getElementById('result');
+const showLetterBtn = document.getElementById('showLetterBtn');
+const systemAnim = document.getElementById('systemChoiceAnim');
+let winCounter=0;
+
+document.querySelectorAll('.btn').forEach(btn=>{
+  btn.addEventListener('click', async ()=>{
+    const playerChoice = btn.dataset.choice;
+    resultDisplay.innerText = '系统思考中...';
+    await new Promise(r=>setTimeout(r,500));
+
+    // 系统出拳逻辑，玩家胜率约2/3
+    let systemChoice = '';
+    const rand=Math.random();
+    if(rand<0.33){ if(playerChoice==='石头') systemChoice='布'; if(playerChoice==='剪刀') systemChoice='石头'; if(playerChoice==='布') systemChoice='剪刀'; }
+    else { const choices=['石头','剪刀','布']; systemChoice=choices[Math.floor(Math.random()*3)]; }
+
+    // 系统出拳动画
+    let emoji = systemChoice==='石头'?'✊': systemChoice==='剪刀'?'✌️':'🖐';
+    systemAnim.innerText = emoji;
+    systemAnim.style.transform='translate(-50%,-50%) scale(1)';
+    setTimeout(()=>{ systemAnim.style.transform='translate(-50%,-50%) scale(0)'; },800);
+
+    // 判定胜负
+    let resultText='';
+    if(playerChoice===systemChoice) resultText='平局！';
+    else if(
+      (playerChoice==='石头' && systemChoice==='剪刀')||
+      (playerChoice==='剪刀' && systemChoice==='布')||
+      (playerChoice==='布' && systemChoice==='石头')
+    ){
+      winCounter++; winCountDisplay.innerText=`胜利次数: ${winCounter} / 3`;
+      resultText=`你出: ${playerChoice}，系统出: ${systemChoice}，你赢了！`;
+    } else resultText=`你出: ${playerChoice}，系统出: ${systemChoice}，你输了！`;
+
+    setTimeout(()=>{ resultDisplay.innerText=resultText; },800);
+
+    if(winCounter>=3){
+      setTimeout(()=>{ fourthLevel.style.display='none'; showLetterBtn.style.display='block'; },1200);
+    }
+  });
+});
+
+// 显示信件按钮
+showLetterBtn.addEventListener('click',()=>{
+  showLetterBtn.style.display='none';
+  document.getElementById('finalLetter').style.display='block';
+});
+</script>
+</body>
+</html>

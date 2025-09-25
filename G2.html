@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第二关 - 情侣回忆配对</title>
+<style>
+  body {
+    font-family: 'Arial', sans-serif;
+    text-align: center;
+    background: linear-gradient(to bottom, #e0f7ff, #b3ecff); /* 浅蓝色渐变背景 */
+    padding: 20px;
+  }
+  h1 { color: #0073b3; } /* 蓝色标题 */
+  #game {
+    display: grid;
+    grid-template-columns: repeat(4, 80px);
+    grid-gap: 15px;
+    justify-content: center;
+    margin-top: 20px;
+  }
+  .card {
+    width: 80px;
+    height: 80px;
+    background: #0073b3;
+    border-radius: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    color: white;
+    user-select: none;
+    perspective: 1000px;
+    position: relative;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+  }
+  .card-inner {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    text-align: center;
+    transition: transform 0.5s;
+    transform-style: preserve-3d;
+    border-radius: 10px;
+  }
+  .card.flipped .card-inner {
+    transform: rotateY(180deg);
+  }
+  .card-front, .card-back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .card-front {
+    background: #0073b3;
+    color: white;
+    font-size: 24px;
+  }
+  .card-back {
+    background: #e0f7ff;
+    color: #0073b3;
+    font-weight: bold;
+    border: 2px solid #0073b3;
+    transform: rotateY(180deg);
+    font-size: 16px;
+    padding: 5px;
+    box-sizing: border-box;
+  }
+  #message {
+    margin-top: 20px;
+    font-size: 20px;
+    color: #0073b3;
+    min-height: 28px;
+    transition: opacity 0.5s;
+  }
+  #next {
+    display: none;
+    margin-top: 20px;
+    padding: 12px 25px;
+    font-size: 18px;
+    border: none;
+    border-radius: 10px;
+    background: #0073b3;
+    color: white;
+    cursor: pointer;
+    transition: 0.3s;
+  }
+  #next:hover { background: #00aaff; }
+</style>
+</head>
+<body>
+<h1>第二关 - 情侣回忆配对</h1>
+<p>找出所有相同的情侣回忆 💖</p>
+<div id="game"></div>
+<div id="message"></div>
+<button id="next" onclick="nextLevel()">进入第三关</button>
+
+<script>
+const gameEl = document.getElementById("game");
+const messageEl = document.getElementById("message");
+const nextBtn = document.getElementById("next");
+
+let cards = ["我爱汉堡","我爱汉堡","开开心心","开开心心","我很爱你","我很爱你","我来保护你","我来保护你"];
+let flippedCards = [];
+let matched = 0;
+let lockBoard = false;
+
+// 打乱数组
+cards.sort(() => Math.random() - 0.5);
+
+// 音效
+const flipSound = new Audio('https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg');
+const matchSound = new Audio('https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg');
+
+// 生成卡片
+cards.forEach((text, index) => {
+  const card = document.createElement("div");
+  card.className = "card";
+  card.dataset.value = text;
+  card.dataset.index = index;
+
+  const inner = document.createElement("div");
+  inner.className = "card-inner";
+
+  const front = document.createElement("div");
+  front.className = "card-front";
+  front.textContent = "?";
+
+  const back = document.createElement("div");
+  back.className = "card-back";
+  back.textContent = text;
+
+  inner.appendChild(front);
+  inner.appendChild(back);
+  card.appendChild(inner);
+  card.addEventListener("click", () => flipCard(card));
+  gameEl.appendChild(card);
+});
+
+function flipCard(card){
+  if(lockBoard || card.classList.contains("flipped")) return;
+
+  card.classList.add("flipped");
+  flipSound.play();
+  flippedCards.push(card);
+
+  if(flippedCards.length === 2){
+    lockBoard = true;
+    setTimeout(checkMatch, 800);
+  }
+}
+
+function checkMatch(){
+  const [card1, card2] = flippedCards;
+  if(card1.dataset.value === card2.dataset.value){
+    matched++;
+    matchSound.play();
+    card1.style.cursor = "default";
+    card2.style.cursor = "default";
+    if(matched === cards.length/2){
+      messageEl.style.opacity = 0;
+      messageEl.textContent = "太棒啦！你们的回忆全部找到了 💖";
+      setTimeout(() => messageEl.style.opacity = 1, 100);
+      nextBtn.style.display = "inline-block";
+    }
+  } else {
+    card1.classList.remove("flipped");
+    card2.classList.remove("flipped");
+  }
+  flippedCards = [];
+  lockBoard = false;
+}
+
+function nextLevel(){
+  alert("进入第三关啦！");
+  window.location.href = "G3.html";
+}
+</script>
+</body>
+</html>
+
+
