@@ -35,7 +35,7 @@ body {
 /* 游戏画布 */
 #gameCanvas { border: 2px solid #0073b3; border-radius: 8px; background: rgba(255,255,255,0.8); display: block; margin: 0 auto; touch-action: none; }
 
-/* 控制按钮（优化缩小版） */
+/* 控制按钮 */
 #controlBtns {
   position: fixed;
   bottom: 10px;
@@ -77,12 +77,12 @@ body {
 <div id="rulesOverlay">
   <h2>第三关游戏规则</h2>
   <p>控制粉色方块左右躲避下落红色陷阱方块</p>
-  <p>躲过 20 个陷阱即可完成第三关</p>
+  <p>躲过 10 个陷阱即可完成第三关</p>
   <button id="startGameBtn">开始游戏</button>
 </div>
 
 <!-- 第三关 -->
-<div id="score">分数: 0 / 20</div>
+<div id="score">分数: 0 / 10</div>
 <div id="progressContainer"><div id="progressBar"></div></div>
 <canvas id="gameCanvas" width="350" height="600"></canvas>
 
@@ -99,14 +99,14 @@ body {
 // ------------------- 第三关 -------------------
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-const player = { x:160, y:550, width:40, height:40, color:'#ff69b4', speed:7 };
+const player = { x:150, y:540, width:50, height:50, color:'#ff69b4', speed:7 };
 const traps = [];
 let score=0, gameOver=false;
-const target=20;
+const target=10; // 目标分数改为 10
 
 function spawnTrap(){ 
-  const size=30; 
-  traps.push({ x:Math.random()*(canvas.width-size), y:-size, width:size, height:size, color:'#ff4444', speed:2+Math.random()*3 }); 
+  const size=50; 
+  traps.push({ x:Math.random()*(canvas.width-size), y:-size, width:size, height:size, color:'#ff4444', speed:1.5+Math.random()*2 }); 
 }
 function drawPlayer(){ ctx.fillStyle=player.color; ctx.fillRect(player.x,player.y,player.width,player.height); }
 function drawTraps(){ traps.forEach(trap=>{ ctx.fillStyle=trap.color; ctx.beginPath(); ctx.arc(trap.x+trap.width/2, trap.y+trap.height/2, trap.width/2,0,Math.PI*2); ctx.fill(); }); }
@@ -135,9 +135,9 @@ function movePlayer(){
   requestAnimationFrame(movePlayer); 
 }
 movePlayer();
-setInterval(()=>{if(!gameOver) spawnTrap();},900);
+setInterval(()=>{if(!gameOver) spawnTrap();},1200); // 陷阱生成间隔放慢
 document.getElementById('restartBtn').addEventListener('click',()=>{
-  traps.length=0; score=0; gameOver=false; player.x=160;
+  traps.length=0; score=0; gameOver=false; player.x=150;
   document.getElementById('score').innerText=`分数: ${score} / ${target}`;
   document.getElementById('progressBar').style.width='0%';
   document.getElementById('restartBtn').style.display='none';
@@ -155,4 +155,5 @@ document.getElementById("rightBtn").addEventListener("click", ()=>{
 </script>
 </body>
 </html>
+
 
