@@ -2,7 +2,7 @@
 <html lang="zh">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>第一关 - 爱情迷宫</title>
 <style>
   body {
@@ -10,26 +10,35 @@
     text-align: center;
     background: linear-gradient(to bottom, #e0f7ff, #b3ecff);
     margin: 0;
-    padding: 20px;
+    padding: 10px;
     overflow-x: hidden;
   }
-  h1 { color: #0073b3; }
+  h1 { 
+    color: #0073b3; 
+    font-size: 22px;
+    margin: 10px 0;
+  }
+  p { font-size: 16px; margin: 5px 0 10px; }
   canvas {
     border: 3px solid #0073b3;
     background: #fff;
-    margin-top: 20px;
     border-radius: 10px;
+    width: 95vw;
+    max-width: 380px;
+    height: 95vw;
+    max-height: 380px;
   }
   #message {
-    font-size: 20px;
+    font-size: 18px;
     color: #0073b3;
-    margin-top: 20px;
+    margin: 10px 0;
     min-height: 28px;
-    transition: opacity 0.5s;
+    opacity: 0;
+    transition: opacity 0.6s;
   }
   #next {
     display: none;
-    margin-top: 20px;
+    margin-top: 10px;
     padding: 12px 25px;
     font-size: 18px;
     border: none;
@@ -39,38 +48,35 @@
     cursor: pointer;
     transition: 0.3s;
   }
-  #next:hover { background: #00aaff; }
+  #next:active { background: #005f8c; }
 
-  /* 方向按钮样式 */
+  /* 控制按钮区 - 底部固定，适合手机 */
   #controls {
-    margin-top: 20px;
+    margin-top: 15px;
     display: inline-block;
   }
   #controls button {
-    padding: 10px 20px;
-    font-size: 18px;
+    padding: 14px 22px;
+    font-size: 22px;
     margin: 5px;
-    border-radius: 8px;
+    border-radius: 10px;
     border: none;
     background-color: #0073b3;
     color: white;
     cursor: pointer;
-    transition: 0.3s;
   }
-  #controls button:hover { background-color: #00aaff; }
-
-  /* 十字排列按钮 */
+  #controls button:active { background-color: #005f8c; }
   .row { display: flex; justify-content: center; }
 </style>
 </head>
 <body>
   <h1>第一关 - 爱情迷宫</h1>
   <p>小朱要走过迷宫去找到小杨 ❤️</p>
-  <canvas id="mazeCanvas" width="400" height="400"></canvas>
+  <canvas id="mazeCanvas"></canvas>
   <div id="message"></div>
   <button id="next" onclick="nextLevel()">进入第二关</button>
 
-  <!-- 方向按钮 -->
+  <!-- 控制按钮 -->
   <div id="controls">
     <div class="row"><button onclick="movePlayer(0,-1)">⬆️</button></div>
     <div class="row">
@@ -83,8 +89,17 @@
 <script>
 const canvas = document.getElementById("mazeCanvas");
 const ctx = canvas.getContext("2d");
-const cellSize = 40;
 const rows = 10, cols = 10;
+let cellSize;
+
+function resizeCanvas() {
+  let size = Math.min(window.innerWidth * 0.9, 380);
+  canvas.width = size;
+  canvas.height = size;
+  cellSize = size / rows;
+  drawMaze();
+}
+window.addEventListener("resize", resizeCanvas);
 
 const maze = [
   [0,1,0,0,0,0,1,0,0,0],
@@ -101,12 +116,10 @@ const maze = [
 
 let player = {x:0, y:0};
 const goal = {x:9, y:9};
-let pathTrail = []; // 玩家移动步迹
+let pathTrail = [];
 
 function drawMaze() {
   ctx.clearRect(0,0,canvas.width,canvas.height);
-  
-  // 绘制迷宫墙
   for (let y=0; y<rows; y++) {
     for (let x=0; x<cols; x++) {
       if (maze[y][x] === 1) {
@@ -116,24 +129,21 @@ function drawMaze() {
     }
   }
 
-  // 绘制玩家步迹
-  pathTrail.forEach(pos => {
-    ctx.fillStyle = "rgba(0, 115, 179, 0.3)";
+  pathTrail.forEach((pos,i) => {
+    ctx.fillStyle = `rgba(0,115,179,${0.3 - i*0.02})`;
     ctx.beginPath();
-    ctx.arc(pos.x*cellSize+20, pos.y*cellSize+20, 10, 0, Math.PI*2);
+    ctx.arc(pos.x*cellSize+cellSize/2, pos.y*cellSize+cellSize/2, cellSize/4, 0, Math.PI*2);
     ctx.fill();
   });
 
-  // 绘制目标点
   ctx.fillStyle = "#ff4d4d";
   ctx.beginPath();
-  ctx.arc(goal.x*cellSize+20, goal.y*cellSize+20, 15, 0, Math.PI*2);
+  ctx.arc(goal.x*cellSize+cellSize/2, goal.y*cellSize+cellSize/2, cellSize/3, 0, Math.PI*2);
   ctx.fill();
 
-  // 绘制玩家
   ctx.fillStyle = "#0073b3";
   ctx.beginPath();
-  ctx.arc(player.x*cellSize+20, player.y*cellSize+20, 15, 0, Math.PI*2);
+  ctx.arc(player.x*cellSize+cellSize/2, player.y*cellSize+cellSize/2, cellSize/3, 0, Math.PI*2);
   ctx.fill();
 }
 
@@ -143,7 +153,8 @@ function movePlayer(dx, dy) {
   if(newX>=0 && newY>=0 && newX<cols && newY<rows && maze[newY][newX] === 0){
     player.x = newX;
     player.y = newY;
-    pathTrail.push({x: player.x, y: player.y}); // 记录步迹
+    pathTrail.push({x: player.x, y: player.y});
+    if (pathTrail.length > 15) pathTrail.shift();
     drawMaze();
     checkWin();
   }
@@ -151,27 +162,24 @@ function movePlayer(dx, dy) {
 
 function checkWin(){
   if(player.x === goal.x && player.y === goal.y){
-    const messageEl = document.getElementById("message");
-    messageEl.textContent = "恭喜你！小朱找到小杨啦 ❤️";
-    messageEl.style.opacity = 0;
-    setTimeout(() => messageEl.style.opacity = 1, 100);
+    const msg = document.getElementById("message");
+    msg.textContent = "恭喜你！小朱找到小杨啦 ❤️";
+    msg.style.opacity = 1;
     animateHeart();
     document.getElementById("next").style.display = "inline-block";
     window.removeEventListener("keydown", keyHandler);
   }
 }
 
-// 心形闪烁动画
 function animateHeart() {
-  let heartSize = 10;
+  let heartSize = 5;
   const interval = setInterval(() => {
-    ctx.fillStyle = "rgba(255, 77, 77, 0.6)";
+    ctx.fillStyle = "rgba(255, 77, 77, 0.5)";
     ctx.beginPath();
-    ctx.moveTo(goal.x*cellSize+20, goal.y*cellSize+20-heartSize/2);
-    ctx.arc(goal.x*cellSize+20, goal.y*cellSize+20, heartSize, 0, Math.PI*2);
+    ctx.arc(goal.x*cellSize+cellSize/2, goal.y*cellSize+cellSize/2, heartSize, 0, Math.PI*2);
     ctx.fill();
-    heartSize += 2;
-    if(heartSize>40) clearInterval(interval);
+    heartSize += 3;
+    if(heartSize>cellSize*1.5) clearInterval(interval);
   }, 100);
 }
 
@@ -190,7 +198,7 @@ function nextLevel(){
 }
 
 window.addEventListener("keydown", keyHandler);
-drawMaze();
+resizeCanvas();
 </script>
 </body>
 </html>
