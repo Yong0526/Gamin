@@ -27,7 +27,7 @@ body {
   display: block;
   margin: 0 auto;
   border-radius: 10px;
-  touch-action: none; /* 手机触控 */
+  touch-action: none;
 }
 #jumpBtn, #restartBtn {
   position: fixed;
@@ -54,30 +54,22 @@ body {
 <button id="jumpBtn">跳跃</button>
 <button id="restartBtn">重新开始</button>
 
-<!-- 音效 -->
 <audio id="scoreSound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_0d16f9f8f8.mp3?filename=correct-6248.mp3"></audio>
 
 <script>
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-// 玩家
 let player = { x: 50, y: 350, width: 40, height: 40, dy: 0, jumpPower: -14, gravity: 0.6, flash: 0 };
-
-// 障碍物
 let obstacles = [];
 let frame = 0;
 let score = 0;
 const target = 3;
 let gameOver = false;
-
-// 音效
 const scoreSound = document.getElementById("scoreSound");
 
-// 跳跃
 function jump() { if(player.y >= 350) player.dy = player.jumpPower; }
 
-// 初始化
 function initGame() {
   player.y = 350; player.dy = 0; player.flash = 0;
   obstacles = []; frame = 0; score = 0; gameOver = false;
@@ -86,14 +78,12 @@ function initGame() {
   update();
 }
 
-// 绘制玩家
 function drawPlayer(){
   ctx.fillStyle = player.flash>0 ? "#ffff00" : "red";
   ctx.fillRect(player.x, player.y, player.width, player.height);
   if(player.flash>0) player.flash--;
 }
 
-// 绘制障碍物
 function drawObstacles(){
   obstacles.forEach(ob=>{
     ctx.fillStyle = ob.flash>0 ? "#FFD700" : "green";
@@ -102,17 +92,14 @@ function drawObstacles(){
   });
 }
 
-// 绘制地面
 function drawGround(){ ctx.fillStyle = "#228B22"; ctx.fillRect(0, 380, canvas.width, 20); }
 
-// 更新跳跃
 function updateJump(){
   player.y += player.dy;
   player.dy += player.gravity;
   if(player.y > 350) player.y = 350;
 }
 
-// 更新障碍物
 function updateObstacles(){
   obstacles.forEach((ob,index)=>{
     ob.x -= 2;
@@ -138,7 +125,6 @@ function updateObstacles(){
   });
 }
 
-// 游戏循环
 function update(){
   if(gameOver) return;
   ctx.clearRect(0,0,canvas.width,canvas.height);
@@ -147,7 +133,7 @@ function update(){
   drawGround();
   updateJump();
 
-  if(frame % 180 === 0){ obstacles.push({x:canvas.width, y:350, width:30, height:40, flash:0}); }
+  if(frame % 180 === 0){ obstacles.push({x:canvas.width, y:350, width:20, height:30, flash:0}); }
 
   updateObstacles();
   drawPlayer();
@@ -156,7 +142,6 @@ function update(){
   requestAnimationFrame(update);
 }
 
-// 绑定按钮
 document.getElementById("jumpBtn").addEventListener("click", jump);
 document.getElementById("restartBtn").addEventListener("click", initGame);
 canvas.addEventListener("touchstart", jump);
@@ -166,4 +151,3 @@ initGame();
 </script>
 </body>
 </html>
-
