@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第五关 - 卡通厨房配对小游戏</title>
+<style>
+  body {
+    margin: 0;
+    font-family: 'Comic Sans MS', Arial, sans-serif;
+    text-align: center;
+    background: linear-gradient(to bottom, #87CEFA, #B0E0E6);
+    color: #333;
+    overflow-x: hidden;
+  }
+  h1 { margin: 20px 0; font-size: 24px; text-shadow: 2px 2px #fff; }
+  #dish { margin: 10px auto; font-size: 22px; font-weight: bold; text-shadow: 1px 1px #fff; }
+  #stepHint { font-size:16px; color:#ff3300; margin-bottom:10px; font-weight:bold; text-shadow: 1px 1px #fff; }
+  .ingredients { display: flex; flex-wrap: wrap; justify-content: center; margin: 20px; }
+  .ingredient {
+    background: #ffeb99; border: 2px solid #ff9900; border-radius: 12px;
+    padding: 12px 18px; margin: 8px; cursor: pointer; font-size: 16px;
+    transition: 0.2s; box-shadow: 2px 2px #ffcc66;
+    user-select: none;
+  }
+  .ingredient:hover { background: #ffcc66; transform: scale(1.05) rotate(-5deg); }
+  #progress { width: 80%; height: 18px; border: 2px solid #ff9900; border-radius: 10px; margin: 20px auto; background: #fff; }
+  #progressBar { width: 0%; height: 100%; background: #ff9900; border-radius: 10px; transition: width 0.3s; }
+  #message { font-size: 18px; margin: 15px; min-height: 24px; }
+  #finalMessage { font-size: 20px; margin: 25px; display: none; color: #ff3300; text-shadow: 1px 1px #fff; }
+  #pot {
+    width: 30vw; max-width: 180px; height: 15vw; max-height: 90px;
+    margin: 20px auto; background: #ff6666; border-radius: 0 0 50% 50%;
+    position: relative; overflow: hidden; box-shadow: inset 0 -8px 8px #ff9999;
+  }
+  .bubble {
+    position: absolute; width: 8px; height: 8px; background: #fff; border-radius: 50%;
+    animation: rise 2s linear infinite; opacity: 0.7;
+  }
+  @keyframes rise { 0% {transform: translateY(0) scale(0.5); opacity:0.7;} 50% {opacity:1;} 100% {transform: translateY(-80px) scale(1); opacity:0;} }
+  .fly {
+    position: absolute; transition: all 0.7s ease-in-out;
+    z-index: 100; pointer-events: none; font-weight: bold; color: #fff; text-shadow: 1px 1px #000;
+  }
+  @keyframes shake { 0% {transform: translateX(0);} 25% {transform: translateX(-5px);} 50% {transform: translateX(5px);} 75% {transform: translateX(-5px);} 100% {transform: translateX(0);} }
+  .shake { animation: shake 0.3s; }
+  #restartBtn, #nextBtn {
+    padding:10px 20px; font-size:16px; margin-top:15px;
+    border:none; border-radius:8px; cursor:pointer;
+  }
+  #restartBtn { background:#ff9900; color:#fff; }
+  #restartBtn:hover { background:#ff7700; }
+  #nextBtn { background:#33cc33; color:#fff; margin-left:10px; }
+  #nextBtn:hover { background:#28a428; }
+</style>
+</head>
+<body>
+
+<h1>第五关 - 卡通厨房配对挑战</h1>
+<div id="dish">准备中...</div>
+<div id="stepHint">⚠️ 请按顺序选择食材</div>
+
+<div id="pot"></div>
+
+<div class="ingredients" id="ingredients"></div>
+
+<div id="progress"><div id="progressBar"></div></div>
+
+<div id="message"></div>
+<div id="finalMessage">
+  <div id="finalText"></div>
+  <button id="restartBtn" style="display:none;">重新游戏</button>
+  <button id="nextBtn" style="display:none;">进入第六关</button>
+</div>
+
+<script>
+const dishes = [
+  {name: "小龙虾", ingredients: ["蒜", "辣椒", "啤酒"]},
+  {name: "煎蛋", ingredients: ["鸡蛋", "盐", "油"]},
+  {name: "番茄炒蛋", ingredients: ["番茄", "鸡蛋", "油"]},
+  {name: "炒青菜", ingredients: ["青菜", "蒜", "油"]},
+  {name: "红烧肉", ingredients: ["猪肉", "酱油", "糖"]}
+];
+
+let currentDishIndex = 0;
+let totalSteps = 0;
+
+const dishEl = document.getElementById("dish");
+const ingredientsEl = document.getElementById("ingredients");
+const messageEl = document.getElementById("message");
+const progressBar = document.getElementById("progressBar");
+const finalMessageEl = document.getElementById("finalMessage");
+const finalText = document.getElementById("finalText");
+const restartBtn = document.getElementById("restartBtn");
+const nextBtn = document.getElementById("nextBtn");
+const potEl = document.getElementById("pot");
+
+function showDish() {
+  if(currentDishIndex >= dishes.length) {
+    dishEl.style.display = "none";
+    ingredientsEl.style.display = "none";
+    document.getElementById("progress").style.display = "none";
+    messageEl.style.display = "none";
+    potEl.style.display = "none";
+    finalMessageEl.style.display = "block";
+    finalText.innerText = "谢谢你陪我一起完成美食，也唤醒了我的记忆。❤️";
+    restartBtn.style.display = "inline-block";
+    nextBtn.style.display = "inline-block";
+    return;
+  }
+
+  const dish = dishes[currentDishIndex];
+  dishEl.innerText = `准备食材：${dish.name}`;
+
+  let options = [...dish.ingredients];
+  const distractors = ["盐","胡椒","糖","洋葱","香菜"].filter(d => !dish.ingredients.includes(d));
+  while(options.length < 5) {
+    options.push(distractors[Math.floor(Math.random() * distractors.length)]);
+  }
+  options = shuffle(options);
+
+  ingredientsEl.innerHTML = "";
+  options.forEach(ing => {
+    const btn = document.createElement("div");
+    btn.className = "ingredient";
+    btn.innerText = ing;
+    btn.addEventListener("click", () => selectIngredient(btn, ing));
+    ingredientsEl.appendChild(btn);
+  });
+
+  totalSteps = 0;
+  updateProgress();
+  messageEl.innerText = "";
+}
+
+function selectIngredient(btn, ing) {
+  const correctIngredients = dishes[currentDishIndex].ingredients;
+  const currentCorrect = correctIngredients[totalSteps];
+  if(ing === currentCorrect) {
+    totalSteps++;
+    messageEl.innerText = `✅ 正确！选择了：${ing}`;
+    flyToPot(btn);
+  } else {
+    messageEl.innerText = `❌ 错误！请按顺序选择食材`;
+    btn.classList.add("shake");
+    setTimeout(() => btn.classList.remove("shake"), 300);
+    btn.style.background = "#f44336";
+    btn.style.color = "#fff";
+  }
+  updateProgress();
+
+  if(totalSteps >= correctIngredients.length) {
+    currentDishIndex++;
+    setTimeout(showDish, 800);
+  }
+}
+
+function updateProgress() {
+  const correctIngredients = dishes[currentDishIndex]?.ingredients || [];
+  const percent = (totalSteps / correctIngredients.length) * 100;
+  progressBar.style.width = percent + "%";
+}
+
+function flyToPot(btn) {
+  const flyEl = btn.cloneNode(true);
+  flyEl.className = "fly";
+  document.body.appendChild(flyEl);
+  const rect = btn.getBoundingClientRect();
+  flyEl.style.left = rect.left + "px";
+  flyEl.style.top = rect.top + "px";
+
+  const potRect = potEl.getBoundingClientRect();
+  setTimeout(() => {
+    flyEl.style.left = (potRect.left + potRect.width/2 - flyEl.offsetWidth/2) + "px";
+    flyEl.style.top = (potRect.top + 20) + "px";
+    flyEl.style.transform = "scale(0.5) rotate(360deg)";
+    flyEl.style.opacity = "0.7";
+  }, 10);
+
+  setTimeout(() => {
+    flyEl.remove();
+    createBubble();
+  }, 700);
+}
+
+function createBubble() {
+  const bubble = document.createElement("div");
+  bubble.className = "bubble";
+  bubble.style.left = Math.random()*(potEl.offsetWidth-10) + "px";
+  const size = Math.random()*10 + 8;
+  bubble.style.width = size + "px";
+  bubble.style.height = size + "px";
+  potEl.appendChild(bubble);
+  setTimeout(() => bubble.remove(), 2000);
+}
+
+function shuffle(array) {
+  return array.sort(() => Math.random() - 0.5);
+}
+
+// 重新游戏
+restartBtn.addEventListener("click", () => {
+  currentDishIndex = 0;
+  totalSteps = 0;
+  dishEl.style.display = "block";
+  ingredientsEl.style.display = "flex";
+  document.getElementById("progress").style.display = "block";
+  messageEl.style.display = "block";
+  potEl.style.display = "block";
+  finalMessageEl.style.display = "none";
+  showDish();
+});
+
+// 进入第六关
+nextBtn.addEventListener("click", () => {
+  window.location.href = "G6.html";
+});
+
+showDish();
+</script>
+</body>
+</html>
+

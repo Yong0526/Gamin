@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第四关 - 猜拳挑战</title>
+<style>
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  text-align: center;
+  background: linear-gradient(to bottom, #87CEFA, #B0E0E6);
+  color: #fff;
+}
+
+/* 游戏规则 */
+#rulesOverlay {
+  position: fixed; top:0; left:0; width:100%; height:100%;
+  background: rgba(0,0,0,0.85);
+  display: flex; flex-direction: column; justify-content: center; align-items: center;
+  z-index: 999;
+  padding: 20px;
+  box-sizing: border-box;
+}
+#rulesOverlay h2 { font-size: 26px; margin-bottom: 15px; }
+#rulesOverlay p { font-size: 18px; margin: 8px 0; line-height: 1.5; }
+#rulesOverlay button {
+  margin-top: 25px; padding: 14px 40px;
+  font-size: 18px; border: none; border-radius: 12px;
+  cursor: pointer; background: #ff69b4; color: #fff;
+  transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+}
+#rulesOverlay button:active { 
+  background: #ff3385; transform: scale(0.95); 
+  box-shadow: 0 0 15px #fff;
+}
+
+/* 游戏信息 */
+#score { font-size: 22px; font-weight: bold; margin: 18px 0 8px; }
+#msg { font-size: 28px; min-height: 50px; margin-top: 8px; transition: transform 0.2s; }
+
+/* 玩家 vs 电脑 */
+#battle {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 50px;
+  font-size: 50px;
+  margin-top: 20px;
+}
+#playerEmoji, #computerEmoji { min-width: 60px; }
+
+/* 控制按钮 */
+#controlBtns {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 50px;
+  flex-wrap: wrap;
+}
+#controlBtns button {
+  width: 110px; height: 60px;
+  font-size: 18px; border: none; border-radius: 12px;
+  background: #ff69b4; color: #fff;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+}
+#controlBtns button:active { 
+  background: #ff3385; transform: scale(0.95); 
+  box-shadow: 0 0 15px #fff;
+}
+
+/* 胜利提示 */
+#endMsg {
+  display: none;
+  margin-top: 30px;
+  background: rgba(0,0,0,0.7);
+  padding: 25px 35px;
+  border-radius: 14px;
+  font-size: 20px;
+  opacity: 0;
+  transform: scale(0.8);
+  transition: opacity 0.5s, transform 0.5s;
+}
+#endMsg.show { display: block; opacity: 1; transform: scale(1); }
+#endMsg button {
+  margin-top: 15px; padding: 10px 30px;
+  font-size: 18px; border: none; border-radius: 12px;
+  cursor: pointer; background: #ff69b4; color: #fff;
+  transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+}
+#endMsg button:active { background: #ff3385; transform: scale(0.95); box-shadow: 0 0 15px #fff; }
+
+/* 出拳动画 */
+@keyframes jump {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+  100% { transform: translateY(0); }
+}
+.msg-jump { animation: jump 0.3s; }
+
+</style>
+</head>
+<body>
+
+<div id="rulesOverlay">
+  <h2>第四关游戏规则</h2>
+  <p>你需要通过猜拳赢 <strong>3 次</strong>才能完成第四关</p>
+  <p>前两局你会输哦，第三局开始你有机会获胜</p>
+  <p>点击下方按钮选择 石头 ✊、剪刀 ✌️ 或 布 ✋</p>
+  <button id="startGameBtn">开始游戏</button>
+</div>
+
+<div id="score">胜利次数: 0 / 3</div>
+<div id="msg"></div>
+
+<div id="battle">
+  <div id="playerEmoji"></div>
+  <div id="computerEmoji"></div>
+</div>
+
+<div id="controlBtns">
+  <button data-choice="rock">✊ 石头</button>
+  <button data-choice="scissors">✌️ 剪刀</button>
+  <button data-choice="paper">✋ 布</button>
+</div>
+
+<div id="endMsg">
+  🎉 恭喜完成第四关！<br>你很厉害❤️
+  <br>
+  <button id="nextBtn">进入下一关</button>
+</div>
+
+<script>
+let score = 0;
+const target = 3;
+let roundCount = 0; // 当前局数
+const scoreEl = document.getElementById('score');
+const msgEl = document.getElementById('msg');
+const endMsg = document.getElementById('endMsg');
+const nextBtn = document.getElementById('nextBtn');
+const playerEmojiEl = document.getElementById('playerEmoji');
+const computerEmojiEl = document.getElementById('computerEmoji');
+
+const choices = [
+  {name:'rock', emoji:'✊'},
+  {name:'paper', emoji:'✋'},
+  {name:'scissors', emoji:'✌️'}
+];
+
+// 电脑出拳逻辑：前两局必输
+function computerChoice(player) {
+  roundCount++;
+  if(roundCount <= 2){
+    switch(player){
+      case 'rock': return 'paper';
+      case 'paper': return 'scissors';
+      case 'scissors': return 'rock';
+    }
+  }
+  if(Math.random() < 0.66){
+    switch(player){
+      case 'rock': return 'scissors';
+      case 'paper': return 'rock';
+      case 'scissors': return 'paper';
+    }
+  }
+  return choices[Math.floor(Math.random()*3)].name;
+}
+
+function checkWin(player, computer){
+  return (player==='rock' && computer==='scissors') ||
+         (player==='paper' && computer==='rock') ||
+         (player==='scissors' && computer==='paper');
+}
+
+function getEmoji(choiceName){ return choices.find(c => c.name===choiceName).emoji; }
+
+function playRound(player){
+  playerEmojiEl.innerText = getEmoji(player);
+  computerEmojiEl.innerText = '';
+  msgEl.innerText = '';
+  document.getElementById('controlBtns').style.pointerEvents = 'none';
+
+  let count = 3;
+  msgEl.innerText = count;
+
+  const countdown = setInterval(()=>{
+    count--;
+    if(count > 0){
+      msgEl.innerText = count;
+      const emoji = choices[Math.floor(Math.random()*3)].emoji;
+      computerEmojiEl.innerText = emoji;
+      computerEmojiEl.classList.remove('msg-jump');
+      void computerEmojiEl.offsetWidth;
+      computerEmojiEl.classList.add('msg-jump');
+      playerEmojiEl.classList.remove('msg-jump');
+      void playerEmojiEl.offsetWidth;
+      playerEmojiEl.classList.add('msg-jump');
+    } else {
+      clearInterval(countdown);
+      msgEl.innerText = '出拳！';
+      const computer = computerChoice(player);
+      const compEmoji = getEmoji(computer);
+      computerEmojiEl.innerText = compEmoji;
+
+      if(checkWin(player, computer)){
+        score++;
+        msgEl.innerText = `你赢了！`;
+      } else {
+        msgEl.innerText = `你没有获胜！`;
+      }
+
+      scoreEl.innerText = `胜利次数: ${score} / ${target}`;
+      document.getElementById('controlBtns').style.pointerEvents = 'auto';
+
+      if(score >= target){
+        document.getElementById('controlBtns').style.display='none';
+        endMsg.classList.add('show');
+      }
+    }
+  }, 1000);
+}
+
+document.querySelectorAll('#controlBtns button').forEach(btn=>{
+  btn.addEventListener('click', ()=> playRound(btn.dataset.choice));
+});
+
+document.getElementById('startGameBtn').addEventListener('click', ()=>{
+  document.getElementById('rulesOverlay').style.display='none';
+});
+
+nextBtn.addEventListener('click', ()=>{ window.location.href="G5.html"; });
+</script>
+</body>
+</html>
+

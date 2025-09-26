@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第六关 - 写信给杨思凝</title>
+<style>
+body {
+  margin:0;
+  font-family:'Comic Sans MS', Arial, sans-serif;
+  text-align:center;
+  background: linear-gradient(to bottom, #000033, #000066);
+  color:#fff;
+  overflow-x:hidden;
+  padding:10px;
+}
+h1 { margin:20px 0; font-size:28px; text-shadow:2px 2px #000; }
+#story {
+  margin:15px auto;
+  font-size:20px;
+  max-width:95%;
+  min-height:140px;
+  background: rgba(255,255,255,0.1);
+  border:2px solid #33ccff;
+  border-radius:12px;
+  padding:15px;
+  text-align:left;
+  box-shadow:0 0 8px #33ccff;
+  line-height:1.6;
+}
+#envelopes { display:flex; justify-content:center; margin:20px auto; gap:15px; flex-wrap:wrap; }
+.envelope {
+  width:90px; height:70px;
+  background:#ffcc66; border:2px solid #ffaa33; border-radius:6px;
+  cursor:pointer; position:relative; transition: transform 0.3s;
+  flex-shrink:0;
+}
+.envelope:hover { transform: scale(1.1); }
+.envelope::before {
+  content:""; position:absolute; top:0; left:0; width:100%; height:100%;
+  border-left:45px solid transparent; border-bottom:35px solid #ffcc66;
+  transform-origin: top left;
+}
+#letterBox { display:none; margin-top:15px; position:relative; }
+#letterContent {
+  width:95%; min-height:120px; font-size:18px; padding:12px;
+  border:2px solid #33ccff; border-radius:8px;
+  background: rgba(255,255,255,0.1); color:#fff; position:relative; z-index:2;
+  resize:none;
+}
+#letterContent:focus { outline:none; }
+#letterDisplay {
+  width:95%; min-height:160px; font-size:20px; padding:12px;
+  border:2px solid #33ccff; border-radius:8px;
+  background: rgba(255,255,255,0.1); color:#fff;
+  margin-top:15px; text-align:left; line-height:1.6;
+  white-space:pre-wrap; word-break:break-word;
+}
+#sendBtn {
+  margin-top:12px; padding:12px 25px; font-size:18px;
+  border:none; border-radius:8px; background:#33ccff; color:#000033;
+  cursor:pointer; position:relative; z-index:2;
+}
+#sendBtn:hover { background:#0099ff; }
+#finalMessage {
+  display:none; margin-top:25px; font-size:22px;
+  color:#33ffcc; text-shadow:1px 1px #000;
+  line-height:1.6;
+}
+/* 光点特效 */
+.particle {
+  position: fixed; width:6px; height:6px; background:#fff;
+  border-radius:50%; opacity:0.8; pointer-events:none;
+  animation: riseParticle 1.5s linear forwards;
+}
+@keyframes riseParticle {
+  0% {transform:translate(0,0) scale(1); opacity:0.8;}
+  100% {transform:translate(var(--x,0px), var(--y,-50px)) scale(0); opacity:0;}
+}
+</style>
+</head>
+<body>
+
+<h1>第六关 - 给杨思凝写一封信</h1>
+<div id="story"></div>
+
+<div id="envelopes">
+  <div class="envelope" data-color="#ffcc66"></div>
+  <div class="envelope" data-color="#66ccff"></div>
+  <div class="envelope" data-color="#ff6699"></div>
+</div>
+
+<div id="letterBox">
+  <textarea id="letterContent" placeholder="在这里写下你想对思凝说的话..."></textarea>
+  <button id="sendBtn">邮寄信件</button>
+</div>
+
+<div id="letterDisplay"></div>
+<div id="finalMessage"></div>
+
+<script>
+const storyEl = document.getElementById("story");
+const envelopes = document.querySelectorAll(".envelope");
+const letterBox = document.getElementById("letterBox");
+const letterContent = document.getElementById("letterContent");
+const sendBtn = document.getElementById("sendBtn");
+const letterDisplay = document.getElementById("letterDisplay");
+const finalMessage = document.getElementById("finalMessage");
+
+// 打字机效果
+function typeWriter(text, element, speed=50, callback=null){
+  element.innerHTML = "";
+  let i = 0;
+  function typing() {
+    if(i < text.length){
+      element.innerHTML += text.charAt(i);
+      i++;
+      setTimeout(typing, speed);
+    } else if(callback){ callback(); }
+  }
+  typing();
+}
+
+// 初始提示
+typeWriter("小朱拿起笔，想写一封信给思凝，唤醒她的记忆。请选择一个信封开始写信。", storyEl);
+
+// 信封选择
+envelopes.forEach(env=>{
+  env.addEventListener("click", ()=>{
+    const color = env.getAttribute("data-color");
+    letterContent.style.background = color + "aa";
+    letterBox.style.display = "block";
+    storyEl.innerHTML = "信封已选好，现在你可以写下你想对思凝说的话。点击“邮寄信件”查看手写效果。";
+    envelopes.forEach(e=>e.style.pointerEvents="none");
+    letterContent.focus();
+  });
+});
+
+// 光点特效
+function createParticle(x, y){
+  const p = document.createElement("div");
+  p.className = "particle";
+  const dx = (Math.random()-0.5)*100;
+  const dy = -50 - Math.random()*50;
+  p.style.left = x + "px";
+  p.style.top = y + "px";
+  p.style.setProperty('--x', dx+'px');
+  p.style.setProperty('--y', dy+'px');
+  document.body.appendChild(p);
+  setTimeout(()=>p.remove(),1500);
+}
+
+// 邮寄信件
+sendBtn.addEventListener("click", ()=>{
+  const text = letterContent.value.trim();
+  if(text === ""){
+    alert("请先写下信件内容再邮寄哦！");
+    return;
+  }
+  letterBox.style.display = "none";
+
+  // 玩家信件手写显示
+  typeWriter(text, letterDisplay, 60, ()=>{
+
+    // 飞行动画
+    const rect = letterDisplay.getBoundingClientRect();
+    const clone = letterDisplay.cloneNode(true);
+    clone.style.position = "fixed";
+    clone.style.left = rect.left + "px";
+    clone.style.top = rect.top + "px";
+    clone.style.margin = 0;
+    clone.style.transition = "all 2s ease-in-out";
+    clone.style.zIndex = 1000;
+    document.body.appendChild(clone);
+
+    let particleInterval = setInterval(()=>{
+      createParticle(rect.left + Math.random()*rect.width, rect.top + Math.random()*rect.height);
+    }, 100);
+
+    setTimeout(()=>{
+      clone.style.left = window.innerWidth - 100 + "px";
+      clone.style.top = "20px";
+      clone.style.transform = "scale(0.2) rotate(720deg)";
+      clone.style.opacity = 0;
+    }, 50);
+
+    setTimeout(()=>{
+      clone.remove();
+      clearInterval(particleInterval);
+
+      // 玩家信件送达，思凝回信
+      const replyText = `华金：  
+
+谢谢你写给我的信，我感受到了你的真心。  
+每一字每一句，我都深深记在心里。  
+无论未来怎样，我会一直想念你，也希望你幸福。  
+
+——思凝`;
+      
+      typeWriter(replyText, storyEl, 40, ()=>{
+
+        // 思凝回信飞回动画
+        const rectReply = storyEl.getBoundingClientRect();
+        const replyClone = document.createElement("div");
+        replyClone.innerText = replyText;
+        replyClone.style.position = "fixed";
+        replyClone.style.left = rectReply.left + "px";
+        replyClone.style.top = rectReply.top + "px";
+        replyClone.style.width = rectReply.width + "px";
+        replyClone.style.background = "rgba(255,255,255,0.1)";
+        replyClone.style.color = "#fff";
+        replyClone.style.padding = "12px";
+        replyClone.style.border = "2px solid #33ccff";
+        replyClone.style.borderRadius = "8px";
+        replyClone.style.transition = "all 2s ease-in-out";
+        replyClone.style.zIndex = 1000;
+        document.body.appendChild(replyClone);
+
+        let particleInterval2 = setInterval(()=>{
+          createParticle(rectReply.left + Math.random()*rectReply.width, rectReply.top + Math.random()*rectReply.height);
+        }, 100);
+
+        setTimeout(()=>{
+          replyClone.style.left = 20 + "px";
+          replyClone.style.top = window.innerHeight - 200 + "px";
+          replyClone.style.transform = "scale(0.2) rotate(-720deg)";
+          replyClone.style.opacity = 0;
+        }, 50);
+
+        setTimeout(()=>{
+          replyClone.remove();
+          clearInterval(particleInterval2);
+          finalMessage.style.display = "block";
+          finalMessage.innerText = "❤️ 第六关完成，小朱与思凝互通心意。感谢你的陪伴。";
+        }, 2100);
+
+      });
+
+    }, 2100);
+  });
+});
+</script>
+
+</body>
+</html>
