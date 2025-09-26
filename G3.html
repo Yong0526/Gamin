@@ -3,157 +3,167 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>第三关 - 躲避陷阱</title>
+<title>第三关 - 手机跑酷</title>
 <style>
 body {
   margin: 0;
-  font-family: 'Arial', sans-serif;
+  font-family: Arial, sans-serif;
   text-align: center;
-  background: linear-gradient(to bottom, #87CEFA, #1E90FF);
-  color: #fff;
+  background: #87CEFA;
+  overflow: hidden;
 }
-
-/* 游戏规则提示 */
-#rulesOverlay {
-  position: fixed; top:0; left:0; width:100%; height:100%;
-  background: rgba(0,0,0,0.7);
-  color:#fff;
-  display:flex; flex-direction:column;
-  justify-content:center; align-items:center; z-index:999;
+#score { font-size: 18px; margin: 10px; font-weight: bold; }
+#progressContainer {
+  width: 90%;
+  height: 20px;
+  background: rgba(255,255,255,0.3);
+  border-radius: 10px;
+  margin: 0 auto 10px auto;
 }
-#rulesOverlay button {
-  margin-top:20px; padding:10px 20px;
-  font-size:18px; border:none; border-radius:8px;
-  cursor:pointer; background:#ff69b4; color:#fff;
+#progressBar { width: 0%; height: 100%; background: #ffcc00; border-radius: 10px; }
+#gameCanvas {
+  border: 2px solid #0073b3;
+  background: #fff;
+  display: block;
+  margin: 0 auto;
+  border-radius: 10px;
+  touch-action: none; /* 手机触控 */
 }
-
-/* 游戏信息 */
-#score { font-size: 18px; margin: 8px 0 2px 0; font-weight: bold; }
-#progressContainer { width: 90%; height: 20px; background: rgba(255,255,255,0.3); border-radius: 10px; overflow: hidden; margin: 0 auto 8px; }
-#progressBar { width: 0%; height: 100%; background: #ffcc00; transition: width 0.2s ease; }
-
-/* 游戏画布 */
-#gameCanvas { border: 2px solid #0073b3; border-radius: 8px; background: rgba(255,255,255,0.8); display: block; margin: 0 auto; touch-action: none; }
-
-/* 控制按钮 */
-#controlBtns {
+#jumpBtn, #restartBtn {
   position: fixed;
-  bottom: 10px;
-  width: 100%;
-  display: flex;
-  justify-content: space-evenly;
-  padding: 0 20px;
-}
-#controlBtns button {
-  width: 80px;
-  height: 40px;
-  font-size: 14px;
-  border: none;
-  border-radius: 8px;
-  background: #ff69b4;
-  color: #fff;
-  cursor: pointer;
-}
-#controlBtns button:active { background: #ff3385; }
-
-/* 其它按钮 */
-#restartBtn, #continueBtn {
-  display: none;
-  margin: 12px auto;
-  padding: 10px 25px;
-  font-size: 16px;
+  bottom: 20px;
+  font-size: 22px;
+  padding: 15px 30px;
   background: #0073b3;
-  color: #fff;
+  color: white;
   border: none;
-  border-radius: 5px;
+  border-radius: 10px;
   cursor: pointer;
+  z-index: 10;
 }
-#restartBtn:active, #continueBtn:active { background: #005a8c; }
+#jumpBtn:active, #restartBtn:active { background: #005f8a; }
+#jumpBtn { left: 20%; }
+#restartBtn { right: 20%; }
 </style>
 </head>
 <body>
-
-<!-- 游戏规则提示 -->
-<div id="rulesOverlay">
-  <h2>第三关游戏规则</h2>
-  <p>控制粉色方块左右躲避下落红色陷阱方块</p>
-  <p>躲过 10 个陷阱即可完成第三关</p>
-  <button id="startGameBtn">开始游戏</button>
-</div>
-
-<!-- 第三关 -->
-<div id="score">分数: 0 / 10</div>
+<h2>第三关 - 跑酷小游戏</h2>
+<div id="score">进度: 0 / 3</div>
 <div id="progressContainer"><div id="progressBar"></div></div>
-<canvas id="gameCanvas" width="350" height="600"></canvas>
-
-<!-- 控制按钮 -->
-<div id="controlBtns">
-  <button id="leftBtn">⬅️ 左移</button>
-  <button id="rightBtn">➡️ 右移</button>
-</div>
-
+<canvas id="gameCanvas" width="360" height="400"></canvas>
+<button id="jumpBtn">跳跃</button>
 <button id="restartBtn">重新开始</button>
-<button id="continueBtn">继续第四关</button>
+
+<!-- 音效 -->
+<audio id="scoreSound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_0d16f9f8f8.mp3?filename=correct-6248.mp3"></audio>
 
 <script>
-// ------------------- 第三关 -------------------
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-const player = { x:150, y:540, width:50, height:50, color:'#ff69b4', speed:7 };
-const traps = [];
-let score=0, gameOver=false;
-const target=10; // 目标分数改为 10
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
 
-function spawnTrap(){ 
-  const size=50; 
-  traps.push({ x:Math.random()*(canvas.width-size), y:-size, width:size, height:size, color:'#ff4444', speed:1.5+Math.random()*2 }); 
+// 玩家
+let player = { x: 50, y: 350, width: 40, height: 40, dy: 0, jumpPower: -14, gravity: 0.6, flash: 0 };
+
+// 障碍物
+let obstacles = [];
+let frame = 0;
+let score = 0;
+const target = 3;
+let gameOver = false;
+
+// 音效
+const scoreSound = document.getElementById("scoreSound");
+
+// 跳跃
+function jump() { if(player.y >= 350) player.dy = player.jumpPower; }
+
+// 初始化
+function initGame() {
+  player.y = 350; player.dy = 0; player.flash = 0;
+  obstacles = []; frame = 0; score = 0; gameOver = false;
+  document.getElementById("score").innerText = `进度: ${score} / ${target}`;
+  document.getElementById("progressBar").style.width = '0%';
+  update();
 }
-function drawPlayer(){ ctx.fillStyle=player.color; ctx.fillRect(player.x,player.y,player.width,player.height); }
-function drawTraps(){ traps.forEach(trap=>{ ctx.fillStyle=trap.color; ctx.beginPath(); ctx.arc(trap.x+trap.width/2, trap.y+trap.height/2, trap.width/2,0,Math.PI*2); ctx.fill(); }); }
-function updateTraps(){
-  traps.forEach((trap,index)=>{
-    trap.y+=trap.speed;
-    if(trap.x<player.x+player.width && trap.x+trap.width>player.x &&
-       trap.y<player.y+player.height && trap.y+trap.height>player.y) gameOver=true;
-    if(trap.y>canvas.height){
-      traps.splice(index,1);
+
+// 绘制玩家
+function drawPlayer(){
+  ctx.fillStyle = player.flash>0 ? "#ffff00" : "red";
+  ctx.fillRect(player.x, player.y, player.width, player.height);
+  if(player.flash>0) player.flash--;
+}
+
+// 绘制障碍物
+function drawObstacles(){
+  obstacles.forEach(ob=>{
+    ctx.fillStyle = ob.flash>0 ? "#FFD700" : "green";
+    ctx.fillRect(ob.x, ob.y - (ob.flash>0?5:0), ob.width, ob.height);
+    if(ob.flash>0) ob.flash--;
+  });
+}
+
+// 绘制地面
+function drawGround(){ ctx.fillStyle = "#228B22"; ctx.fillRect(0, 380, canvas.width, 20); }
+
+// 更新跳跃
+function updateJump(){
+  player.y += player.dy;
+  player.dy += player.gravity;
+  if(player.y > 350) player.y = 350;
+}
+
+// 更新障碍物
+function updateObstacles(){
+  obstacles.forEach((ob,index)=>{
+    ob.x -= 2;
+    if(player.x < ob.x+ob.width && player.x+player.width>ob.x &&
+       player.y<ob.y+ob.height && player.y+player.height>ob.y){
+         gameOver = true;
+         setTimeout(()=> alert("游戏失败！请点击重新开始"),100);
+    }
+    if(ob.x + ob.width < 0){
+      obstacles.splice(index,1);
       score++;
-      document.getElementById('score').innerText=`分数: ${score} / ${target}`;
-      document.getElementById('progressBar').style.width=`${(score/target)*100}%`;
-      if(score>=target){ gameOver=true; setTimeout(()=>{ document.getElementById('continueBtn').style.display='block'; },100); }
+      player.flash = 5;
+      ob.flash = 5;
+      scoreSound.currentTime = 0;
+      scoreSound.play();
+      document.getElementById("score").innerText = `进度: ${score} / ${target}`;
+      document.getElementById("progressBar").style.width = `${(score/target)*100}%`;
+      if(score>=target){
+        gameOver = true;
+        setTimeout(()=>{ alert("恭喜过关！进入第四关"); window.location.href="G4.html"; },100);
+      }
     }
   });
 }
-function draw(){ ctx.clearRect(0,0,canvas.width,canvas.height); drawPlayer(); drawTraps(); }
-function gameLoop(){ if(!gameOver){ updateTraps(); draw(); requestAnimationFrame(gameLoop); } else{ document.getElementById('restartBtn').style.display='block'; if(score<target) setTimeout(()=>alert('游戏失败！你的分数:'+score),50);} }
-let keys={};
-document.addEventListener('keydown',e=>keys[e.key]=true);
-document.addEventListener('keyup',e=>keys[e.key]=false);
-function movePlayer(){ 
-  if(keys['ArrowLeft']&&player.x>0)player.x-=player.speed; 
-  if(keys['ArrowRight']&&player.x+player.width<canvas.width)player.x+=player.speed; 
-  requestAnimationFrame(movePlayer); 
-}
-movePlayer();
-setInterval(()=>{if(!gameOver) spawnTrap();},1200); // 陷阱生成间隔放慢
-document.getElementById('restartBtn').addEventListener('click',()=>{
-  traps.length=0; score=0; gameOver=false; player.x=150;
-  document.getElementById('score').innerText=`分数: ${score} / ${target}`;
-  document.getElementById('progressBar').style.width='0%';
-  document.getElementById('restartBtn').style.display='none';
-  gameLoop();
-});
-document.getElementById('startGameBtn').addEventListener('click',()=>{ document.getElementById('rulesOverlay').style.display='none'; gameLoop(); });
 
-// 按钮操作
-document.getElementById("leftBtn").addEventListener("click", ()=>{
-  if(player.x > 0) player.x -= player.speed;
-});
-document.getElementById("rightBtn").addEventListener("click", ()=>{
-  if(player.x + player.width < canvas.width) player.x += player.speed;
-});
+// 游戏循环
+function update(){
+  if(gameOver) return;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  frame++;
+
+  drawGround();
+  updateJump();
+
+  if(frame % 180 === 0){ obstacles.push({x:canvas.width, y:350, width:30, height:40, flash:0}); }
+
+  updateObstacles();
+  drawPlayer();
+  drawObstacles();
+
+  requestAnimationFrame(update);
+}
+
+// 绑定按钮
+document.getElementById("jumpBtn").addEventListener("click", jump);
+document.getElementById("restartBtn").addEventListener("click", initGame);
+canvas.addEventListener("touchstart", jump);
+canvas.addEventListener("mousedown", jump);
+
+initGame();
 </script>
 </body>
 </html>
-
 
